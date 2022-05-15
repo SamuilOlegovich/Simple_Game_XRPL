@@ -29,6 +29,7 @@
       <module name="configg" options="-parameters" />
       <module name="eureca-service" options="-parameters" />
       <module name="game-service" options="-parameters" />
+      <module name="gateway" options="-parameters" />
       <module name="gateway-service" options="-parameters" />
       <module name="notification-service" options="-parameters" />
       <module name="pay-service" options="-parameters" />

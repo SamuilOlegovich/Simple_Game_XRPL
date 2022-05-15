@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>com.samuilolegovich</groupId>
-    <artifactId>OneBitCasino</artifactId>
+    <artifactId>SimpleGameXRPL</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>OneBitCasino</name>
-    <description>Project for One Bit Casino</description>
+    <name>SimpleGameXRPL</name>
+    <description>Project for Simple Game XRPL</description>
 
     <properties>
         <java.version>11</java.version>

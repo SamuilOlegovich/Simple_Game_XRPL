@@ -8,7 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @EnableDiscoveryClient
 public class SimpleGameApplication {
     public static void main(String[] args) {
-        SpringApplication.run(SimpleGameApplication.class, args);
+           SpringApplication.run(SimpleGameApplication.class, args);
     }
     /*
     * в данном сервисе должна быть реализована вообще незамыславатая логика -

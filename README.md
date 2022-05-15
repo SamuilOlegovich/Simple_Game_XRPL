@@ -7,5 +7,3 @@
 Совершает выплаты.
 
 И отсылает награды.
-# Simple_Game_XRPL
-# Simple_Game_XRPL
