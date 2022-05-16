@@ -1,25 +1,27 @@
 package com.samuilolegovich.listeners;
 
-import com.samuilolegovich.configuration.RabbitConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Random;
+
 @Component
 @EnableRabbit //нужно для активации обработки аннотаций @RabbitListener
 public class RabbitMqListenerTest {
-    private static final Logger LOG = LoggerFactory.getLogger(RabbitConfiguration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMqListenerTest.class);
 
-    @RabbitListener(queues = "queueAccountBalanceChanges")
-    public void processQueue(String message) {
-        LOG.info("Received from queue Account Balance Changes: " + message);
+    Random random = new Random();
+
+    @RabbitListener(queues = "queue-account-balance-changes")
+    public void worker1(String message) {
+        LOG.info("Accepted on worker 1 : " + message);
     }
 
-//    @RabbitListener(queues = "queueAccountBalanceChanges")
-//    public void processQueueTwo(Message message) {
-//        LOG.info("Received from queue Account Balance Changes: " + new String(message.getBody()));
-//    }
+    @RabbitListener(queues = "other-changes")
+    public void worker2(String message) {
+        LOG.info("Accepted on worker 2 : " + message);
+    }
 }

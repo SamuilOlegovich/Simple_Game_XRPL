@@ -1,9 +1,9 @@
 spring:
   application:
-    name: authorization-service
-  cloud:
-    config:
-      uri: http://localhost:8888
-      fail-fast: true
-      password: password
-      username: user
+    name: simple-game-service
+#  cloud:
+#    config:
+#      uri: http://localhost:8888
+#      fail-fast: true
+#      password: password
+#      username: user

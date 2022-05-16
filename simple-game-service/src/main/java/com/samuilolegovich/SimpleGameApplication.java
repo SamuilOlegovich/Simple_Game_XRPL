@@ -7,8 +7,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @SpringBootApplication
 @EnableDiscoveryClient
 public class SimpleGameApplication {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
            SpringApplication.run(SimpleGameApplication.class, args);
+           Thread.sleep(10000);
     }
     /*
     * в данном сервисе должна быть реализована вообще незамыславатая логика -
