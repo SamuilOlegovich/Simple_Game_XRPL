@@ -1,9 +1,11 @@
 package com.samuilolegovich.model.subscribers;
 
+import com.samuilolegovich.domain.User;
+import com.samuilolegovich.dto.CommandDto;
 import com.samuilolegovich.enums.StringEnum;
 import com.samuilolegovich.model.sockets.enums.StreamSubscriptionEnum;
 import com.samuilolegovich.model.subscribers.interfaces.StreamSubscriber;
-import lombok.RequiredArgsConstructor;
+import com.samuilolegovich.repository.UserRepo;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+
 @Component
 @Qualifier("streamSubscriberToAccountBalanceChanges")
 public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber {
@@ -19,6 +24,8 @@ public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber
 
     @Autowired
     private RabbitTemplate template;
+    @Autowired
+    private UserRepo userRepo;
 
 
 
@@ -26,22 +33,45 @@ public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber
     public void onSubscription(StreamSubscriptionEnum subscription, JSONObject message) {
         LOG.info("subscription returned a {} message", subscription.getMessageType());
         LOG.info("subscription returned a {} message", message.toString());
-        // handle transaction || ledger message
-        // обработка транзакции || сообщение бухгалтерской книги
 
-        if (message.getJSONObject("transaction").has("DestinationTag")
+        if (message.has("transaction")
+                && message.getJSONObject("transaction").has("DestinationTag")
                 && message.getJSONObject("transaction").getString("Destination")
                 .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR.getValue())) {
-            // из этой очереди берем ставку и адрес возврата и объем ставки
-            template.convertAndSend("balance", message.toString());
-        }
-        else  if (message.getJSONObject("transaction").getString("Destination")
+            // если в сообщении есть поле тег, а так же адресат получателя мой кошелек
+            BigDecimal receivedFunds = new BigDecimal(message.getJSONObject("meta").getString("delivered_amount"));
+            BigDecimal fundsOnTheBalanceSheet = new BigDecimal(message.getJSONObject("meta")
+                    .getJSONArray("AffectedNodes")
+                    .getJSONObject(1)
+                    .getJSONObject("ModifiedNode")
+                    .getJSONObject("FinalFields")
+                    .getString("Balance"));
+            BigDecimal availableFunds = fundsOnTheBalanceSheet.subtract(fundsOnTheBalanceSheet);
+
+            String uuid = UUID.randomUUID().toString();
+
+            Long id = userRepo.save(User.builder()
+                    .destinationTag(message.getJSONObject("transaction").getInt("DestinationTag") + "")
+                    .data(message.getJSONObject("transaction").getBigDecimal("date").toString())
+                    .account(message.getJSONObject("transaction").getString("Account"))
+                    .availableFunds(availableFunds)
+                    .bet(receivedFunds)
+                    .uuid(uuid)
+                    .build())
+                    .getId();
+
+            // из этой очереди получаем айди ставки - заходим в базу - находим и обрабатываем
+            template.convertAndSend("balance", CommandDto.builder().id(id).uuid(uuid).build());
+
+        } else  if (message.has("transaction")
+                && message.getJSONObject("transaction").has("Destination")
+                && message.getJSONObject("transaction").getString("Destination")
                 .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR.getValue())) {
-            // из этой очереди можно брать реальный баланс на кошельке (остачу)
-            // не совсем правильно так как могут быть нюансы - но пока сойдет и так
+            // если адрес получателя мой кошелек, но тега нет
             template.convertAndSend("balance-not-tag", message.toString());
-        }
-        else {
+
+        } else {
+            // сообщения любого другого характера
             template.convertAndSend("other-changes", message.toString());
         }
     }

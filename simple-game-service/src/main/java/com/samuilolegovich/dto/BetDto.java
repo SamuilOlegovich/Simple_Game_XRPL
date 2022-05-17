@@ -13,11 +13,12 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BetDto {
-    private String userId;
-//    private String userName;
-    private String userAddress;
-    private Enums colorBet;
-    private BigDecimal bet;
+    private Long id;
+    private String uuid;
+    private String account;
+    private String destinationTag;
     private BigDecimal availableFunds;
-    private long data;
+    private BigDecimal bet;
+    private Enums colorBet;
+    private Long data;
 }

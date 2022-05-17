@@ -1,14 +1,13 @@
 package com.samuilolegovich.service;
 
 import com.samuilolegovich.domain.User;
-import com.samuilolegovich.dto.AnswerToBetDto;
-import com.samuilolegovich.dto.BetDto;
-import com.samuilolegovich.dto.WonOrNotWon;
+import com.samuilolegovich.dto.*;
 import com.samuilolegovich.enums.*;
 import com.samuilolegovich.model.BetLogic;
 import com.samuilolegovich.repository.*;
 import com.samuilolegovich.service.interfaces.BetService;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -24,11 +23,17 @@ import static com.samuilolegovich.util.ReadMessageHelper.getMessageForPlayer;
 @Service
 @AllArgsConstructor
 public class BetServiceImpl implements BetService {
+    @Autowired
     private ConditionRepo conditionRepo;
+    @Autowired
     private DonationsRepo donationsRepo;
+    @Autowired
     private ArsenalRepo arsenalRepo;
+    @Autowired
     private LottoRepo lottoRepo;
+    @Autowired
     private BetLogic betLogic;
+    @Autowired
     private UserRepo userRepo;
 
     private final String YOUR_ACCOUNT_IS_NOT_ENOUGH_CREDITS_TO_BET = "there_are_not_enough_credits_in_the_account_for_a_bet";
@@ -45,7 +50,9 @@ public class BetServiceImpl implements BetService {
     private final String EN = "en";
 
 
-    public AnswerToBetDto placeBet(BetDto betDto) {
+    public CommandAnswerDto placeBet(CommandDto command) {
+        // тут нам надо записать в базу пользователя на время обработки ставки, а так же выплаты
+        // скорее всего это лучше сделать даже в платежном сервисе
         Optional<User> optionalPlayer = userRepo.findById(betDto.getUserId());
 
         return optionalPlayer.map(user ->

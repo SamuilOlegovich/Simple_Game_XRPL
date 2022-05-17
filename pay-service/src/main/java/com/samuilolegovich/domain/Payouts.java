@@ -6,24 +6,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.math.BigDecimal;
 
 @Data
-@Table(name = "users")
+@Table(name = "payouts")
 @Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class Payouts {
     @Id // @ID - Важно чтобы была из библиотеке -> javax.persistence.Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private String uuid;
-    private String account;
-    @Column(name = "destination_tag")
-    private String destinationTag;
-    @Column(name = "available_funds")
-    private BigDecimal availableFunds;
-    private BigDecimal bet;
-    private String data;
 }

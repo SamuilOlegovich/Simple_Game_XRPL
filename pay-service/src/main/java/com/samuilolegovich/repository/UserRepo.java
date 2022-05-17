@@ -13,5 +13,6 @@ public interface UserRepo extends CrudRepository<User, Long> {
     Optional<User> findById(Long id);
     Optional<User> findByUuid(String string);
     Optional<User> findByIdAndUuid(Long id, String string);
+    User save(User user);
 
 }
