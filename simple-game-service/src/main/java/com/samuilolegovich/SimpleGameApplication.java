@@ -4,12 +4,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
+import java.util.Locale;
+
 @SpringBootApplication
 @EnableDiscoveryClient
 public class SimpleGameApplication {
     public static void main(String[] args) throws InterruptedException {
            SpringApplication.run(SimpleGameApplication.class, args);
-           Thread.sleep(10000);
+        // Обязательно стоит установить локаль иначе будет падать с ошибкой парсинга даты
+        Locale.setDefault(Locale.ENGLISH);
     }
     /*
     * в данном сервисе должна быть реализована вообще незамыславатая логика -

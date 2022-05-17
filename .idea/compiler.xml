@@ -9,17 +9,16 @@
         <outputRelativeToContentRoot value="true" />
         <module name="config-service" />
         <module name="pay-service" />
-        <module name="game-service" />
         <module name="gateway-service" />
         <module name="simple-game-service" />
-        <module name="authorization-service" />
-        <module name="notification-service" />
-        <module name="gateway" />
         <module name="eureca-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="authorization-service" target="11" />
       <module name="configg" target="11" />
+      <module name="game-service" target="11" />
+      <module name="notification-service" target="12" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -29,7 +28,6 @@
       <module name="configg" options="-parameters" />
       <module name="eureca-service" options="-parameters" />
       <module name="game-service" options="-parameters" />
-      <module name="gateway" options="-parameters" />
       <module name="gateway-service" options="-parameters" />
       <module name="notification-service" options="-parameters" />
       <module name="pay-service" options="-parameters" />

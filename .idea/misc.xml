@@ -9,8 +9,11 @@
     </option>
     <option name="ignoredFiles">
       <set>
+        <option value="$PROJECT_DIR$/authorization-service/pom.xml" />
         <option value="$PROJECT_DIR$/config/pom.xml" />
         <option value="$PROJECT_DIR$/configg-s/pom.xml" />
+        <option value="$PROJECT_DIR$/game-service/pom.xml" />
+        <option value="$PROJECT_DIR$/notification-service/pom.xml" />
       </set>
     </option>
   </component>
