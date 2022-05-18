@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -19,10 +20,10 @@ import java.time.LocalDateTime;
 public class Lotto {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
-    private long replenishment;
-    @Column(name = "total_lotto_credits")
-    private long totalLottoCredits;
+    private Long id;
+    private BigDecimal replenishment;
+    @Column(name = "total_lotto")
+    private BigDecimal totalLotto;
 
     @CreationTimestamp
     // указываем что поле не обновляемое

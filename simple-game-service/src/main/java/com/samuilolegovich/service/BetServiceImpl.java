@@ -1,5 +1,6 @@
 package com.samuilolegovich.service;
 
+import com.samuilolegovich.domain.Payouts;
 import com.samuilolegovich.domain.User;
 import com.samuilolegovich.dto.*;
 import com.samuilolegovich.enums.*;
@@ -10,12 +11,14 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.Column;
+import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.samuilolegovich.enums.InformationAboutRates.*;
 import static com.samuilolegovich.enums.Prize.*;
-import static com.samuilolegovich.enums.RedBlack.BLACK;
-import static com.samuilolegovich.enums.RedBlack.RED;
+import static com.samuilolegovich.enums.RedBlack.*;
 import static com.samuilolegovich.util.Converter.convertForUserCalculation;
 import static com.samuilolegovich.util.LocaleHelper.getLocale;
 import static com.samuilolegovich.util.ReadMessageHelper.getMessageForPlayer;
@@ -29,6 +32,8 @@ public class BetServiceImpl implements BetService {
     private DonationsRepo donationsRepo;
     @Autowired
     private ArsenalRepo arsenalRepo;
+    @Autowired
+    private PayoutsRepo payoutsRepo;
     @Autowired
     private LottoRepo lottoRepo;
     @Autowired
@@ -51,35 +56,66 @@ public class BetServiceImpl implements BetService {
 
 
     public CommandAnswerDto placeBet(CommandDto command) {
-        // тут нам надо записать в базу пользователя на время обработки ставки, а так же выплаты
-        // скорее всего это лучше сделать даже в платежном сервисе
-        Optional<User> optionalPlayer = userRepo.findById(betDto.getUserId());
+        Optional<User> optionalPlayer = userRepo.findByIdAndUuid(command.getId(), command.getUuid());
 
-        return optionalPlayer.map(user ->
-                placeBet(user, (RedBlack) betDto.getColorBet(), betDto.getBet()))
-                .orElse(AnswerToBetDto.builder()
-                        .comment(getMessageForPlayer(PLAYER_NOT_FOUND, getLocale(EN)))
-                        .informationForBet(InformationAboutRates.SOMETHING_WENT_WRONG)
-                        .claimedCombination(betDto.getColorBet())
-                        .win(0L)
+        return optionalPlayer.map(user -> placeBet(UserDto.builder()
+                .destinationTag(user.getDestinationTag())
+                .availableFunds(user.getAvailableFunds())
+                .account(user.getAccount())
+                .uuid(user.getUuid())
+                .data(user.getData())
+                .bet(user.getBet())
+                .id(user.getId())
+                .build()))
+                .orElse(CommandAnswerDto.builder()
+                        .id(0L)
+                        .uuid(CommentEnum.PLAYER_NOT_FOUND.toString())
                         .build());
+    }
 
+    private RedBlack getColorBet(String destinationTag) {
+        if (destinationTag.equalsIgnoreCase(RED.getValue())) {
+            return RED;
+        }
+        if (destinationTag.equalsIgnoreCase(BLACK.getValue())) {
+            return BLACK;
+        }
+        if (destinationTag.equalsIgnoreCase(RedBlack.ZERO.getValue())) {
+            return RedBlack.ZERO;
+        }
+        if (destinationTag.equalsIgnoreCase(RedBlack.GET_LOTTO_VOLUME.getValue())) {
+            return RedBlack.GET_LOTTO_VOLUME;
+        }
+        return OTHER;
     }
 
 
-    private AnswerToBetDto placeBet(User user, RedBlack redBlackBet, Long bet) {
-        Long lottoNow = lottoRepo.findFirstByOrderByCreatedAtDesc().getTotalLottoCredits();
-        Long playerCredits = user.getCredits();
+    private CommandAnswerDto placeBet(UserDto user) {
+        BigDecimal lottoNow = lottoRepo.findFirstByOrderByCreatedAtDesc().getTotalLotto();
 
-        // недопустимая ставка == 0
-        if (bet == 0) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(INVALID_BET_VALUE_ZERO, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .informationForBet(INCORRECT_RATE)
-                    .claimedCombination(redBlackBet)
-                    .lottoNow(lottoNow)
-                    .win(0L)
+        // недопустимая ставка - больше 100 XRP или меньше 0.1XRP== 0
+        if (user.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) > 0
+                || user.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) < 0 ) {
+            StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
+
+            Payouts payouts = payoutsRepo.save(Payouts.builder()
+                    .destinationTag(user.getDestinationTag())
+                    .availableFunds(user.getAvailableFunds())
+                    .uuid(UUID.randomUUID().toString())
+                    .account(user.getAccount())
+                    .payouts(new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()))
+                    .tagOut(stringBuilder
+                            .replace(stringBuilder.length() - 6, stringBuilder.length(), "")
+                            .insert(0, INFO.getValue()).toString())
+                    .data(user.getData())
+                    .bet(user.getBet())
+                    .build());
+
+            return CommandAnswerDto.builder()
+                    .baseUserUuid(user.getUuid())
+                    .baseUserId(user.getId())
+                    .uuid(payouts.getUuid())
+                    .id(payouts.getId())
                     .build();
         }
 
