@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,7 +22,7 @@ public class Arsenal {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
-    private long credits;
+    private BigDecimal credits;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

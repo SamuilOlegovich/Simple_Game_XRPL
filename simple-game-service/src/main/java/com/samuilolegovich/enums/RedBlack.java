@@ -8,7 +8,7 @@ public enum RedBlack implements Enums {
     OTHER("10101"),
     ZERO("10001"),
     RED("999"),
-    INFO("13")
+
     ;
 
     @Getter

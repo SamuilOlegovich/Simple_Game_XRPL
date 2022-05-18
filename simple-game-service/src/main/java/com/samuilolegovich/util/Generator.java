@@ -7,7 +7,7 @@ public class Generator {
 
 
     // генерирует число
-    public static int generate() {
+    public static Integer generate() {
 //        return (byte) ( Math.random() * 101 );
         return secureRandom.nextInt(101);
     }

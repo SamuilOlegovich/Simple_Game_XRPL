@@ -27,6 +27,7 @@ public class BetController {
 
     @PostMapping("/red-or-black")
     public AnswerToBetDto placeBetOnBlackOrRed(@RequestBody BetDto bet) {
-        return betService.placeBet(bet);
+//        return betService.placeBet(bet);
+        return null;
     }
 }

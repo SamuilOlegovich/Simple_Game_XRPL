@@ -1,259 +1,191 @@
 package com.samuilolegovich.model;
 
 import com.samuilolegovich.domain.*;
-import com.samuilolegovich.dto.WonOrNotWon;
+import com.samuilolegovich.dto.CommandAnswerDto;
+import com.samuilolegovich.dto.UserDto;
 import com.samuilolegovich.enums.*;
 import com.samuilolegovich.repository.*;
 import com.samuilolegovich.util.Converter;
 import com.samuilolegovich.util.Generator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import static com.samuilolegovich.util.Converter.convertForUserCalculation;
+import java.math.BigDecimal;
+import java.util.UUID;
+
 
 @Component
 @RequiredArgsConstructor
 public class BetLogic {
     private final ConditionRepo conditionRepo;
-    private final DonationsRepo donationsRepo;
     private final ArsenalRepo arsenalRepo;
+    private final RabbitTemplate template;
+    private final PayoutsRepo payoutsRepo;
     private final LottoRepo lottoRepo;
-    private final UserRepo userRepo;
-
-
-    /*  Если будут проблеммы с синхронизацией и неадекватным списанием средств
-        то расскоментировать код ниже. А так же внутренности класса BetConfig.
-
-    private static volatile BetLogic bet;
-
-
-    private BetLogic(ConditionRepo conditionRepo, DonationsRepo donationsRepo, ArsenalRepo arsenalRepo,
-                PlayerRepo playerRepo, LottoRepo lottoRepo) {
-        this.conditionRepo = conditionRepo;
-        this.donationsRepo = donationsRepo;
-        this.arsenalRepo = arsenalRepo;
-        this.playerRepo = playerRepo;
-        this.lottoRepo = lottoRepo;
-    }
-
-
-    public static BetLogic getInstance(ConditionRepo conditionRepo, DonationsRepo donationsRepo, ArsenalRepo arsenalRepo,
-                                  PlayerRepo playerRepo, LottoRepo lottoRepo) {
-        BetLogic localInstance = bet;
-        if (localInstance == null) {
-            synchronized (BetLogic.class) {
-                localInstance = bet;
-                if (localInstance == null) {
-                    bet = localInstance = new BetLogic(conditionRepo, donationsRepo, arsenalRepo, playerRepo, lottoRepo);
-                }
-            }
-        }
-        return localInstance;
-    }
-    */
 
 
 
-
-    public WonOrNotWon calculateTheWin(User user, Long bet, RedBlack redBlackBet) {
-        // получаем игрока и данные о его кредитах
-        long playerCredits = user.getCredits();
-
+    public CommandAnswerDto calculateTheWin(UserDto userDto) {
         // берем последнюю запись в арсенале (она максимально актуальна на данный момент)
         Arsenal arsenal = arsenalRepo.findFirstByOrderByCreatedAtDesc();
-        long arsenalCredit = arsenal.getCredits();
-
-        // проверяем достаточно ли кредитов в запасе на ответ ставке
-        if (convertForUserCalculation(arsenalCredit) <= bet) {
-            return WonOrNotWon.builder()
-                    .totalLottoNow(lottoRepo.findFirstByOrderByCreatedAtDesc().getTotalLottoCredits())
-                    .replyToBet(InformationAboutRates.NOT_ENOUGH_CREDIT_FOR_ANSWER)
-                    .totalLoansNow(convertForUserCalculation(user.getCredits()))
-                    .win(0L)
-                    .build();
-        }
+        BigDecimal arsenalCredit = arsenal.getCredits();
 
         // Получаем состояния системы
         Lotto lotto = lottoRepo.findFirstByOrderByCreatedAtDesc();
-        Condition condition = conditionRepo.findByBet(bet);
+        Condition condition = conditionRepo.findByBet(userDto.getBet());
 
         // получаем данные по состоянию
-        long lottoCredits = lotto.getTotalLottoCredits();
-        int bias = condition.getBias();
+        BigDecimal lottoCredits = lotto.getTotalLotto();
+        Integer bias = condition.getBias();
 
         // генерируем число
-        int generatedLotto = Generator.generate();
+        Integer generatedLotto = Generator.generate();
 
         // если смещение больше нуля то проверяем на выигрыш
         if (bias > ConstantsEnum.ZERO_BIAS.getValue()) {
             // если лото позволяет дробление
             if (checkForWinningsLotto(lottoCredits)) {
-                if (generatedLotto == ConstantsEnum.LOTTO.getValue())
-                    return point(user, playerCredits, lottoCredits);
-                if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue())
-                    return superLotto(user, playerCredits, lottoCredits);
+                if (generatedLotto == ConstantsEnum.LOTTO.getValue()) {
+                    return point(userDto, lottoCredits);
+                }
+                if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue()) {
+                    return superLotto(userDto, lottoCredits);
+                }
             }
-
-            return takeIntoAccountTheBias(user, playerCredits, bet, redBlackBet, arsenalCredit,
-                    lottoCredits, condition, bias);
+            return takeIntoAccountTheBias(userDto, lottoCredits, condition, bias);
         }
-
-        return wonOrNotWon(user, playerCredits, bet, redBlackBet, generatedLotto,
-                arsenalCredit, lottoCredits, condition);
+        return wonOrNotWon(userDto, generatedLotto, lottoCredits, condition);
     }
 
 
 
 
 
-    private WonOrNotWon point(User user, long playerCredits, long lottoCredits) {
-        long onePercent = lottoCredits / 100L;
-        long boobyPrize = onePercent * ConstantsEnum.BOOBY_PRIZE.getValue();
-        long totalDonation = donationsRepo.findFirstByOrderByCreatedAtDesc().getTotalDonations() + onePercent;
+    private CommandAnswerDto point(UserDto userDto, BigDecimal lottoCredits) {
+        BigDecimal realLotto = lottoCredits.subtract(new BigDecimal(BigDecimalEnum.ONE_XRP.getValue()));
+        BigDecimal onePercent = realLotto.divide(new BigDecimal(BigDecimalEnum.ONE_PERCENT.getValue()));
+        BigDecimal boobyPrize = onePercent.multiply(new BigDecimal(ConstantsEnum.BOOBY_PRIZE.getValue()));
+        BigDecimal lottoNow = lottoCredits.subtract(boobyPrize.add(onePercent));
 
-        user.setCredits(playerCredits + boobyPrize);
+        lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
+        sendDonationToTheOwner(onePercent, Prize.LOTTO);
 
-        lottoRepo.save(Lotto.builder()
-                .totalLottoCredits(lottoCredits - (boobyPrize + onePercent))
-                .build());
-
-        donationsRepo.save(Donations.builder()
-                .totalDonations(totalDonation)
-                .donations(onePercent)
-                .typeWin(Prize.LOTTO)
-                .build());
-
-        userRepo.save(user);
-
-        return WonOrNotWon.builder()
-                .totalLoansNow(convertForUserCalculation(user.getCredits()))
-                .win(convertForUserCalculation(boobyPrize))
-                .totalLottoNow(lottoCredits)
-                .replyToBet(Prize.LOTTO)
-                .build();
+        return sendPayment(userDto, lottoNow, boobyPrize, Prize.LOTTO);
     }
 
-
-
-    private WonOrNotWon superLotto(User user, long playerCredits, long lottoCredits) {
+    private CommandAnswerDto superLotto(UserDto userDto, BigDecimal lottoCredits) {
         // добавить откусывание 10 процентов в фонд
-        long onePercent = lottoCredits / 100L;
-        long donation = onePercent * ConstantsEnum.DONATE.getValue();
-        long allLotto = onePercent * ConstantsEnum.PRIZE.getValue();
-        long totalDonations = donationsRepo.findFirstByOrderByCreatedAtDesc().getTotalDonations() + donation;
+        BigDecimal realLotto = lottoCredits.subtract(new BigDecimal(BigDecimalEnum.ONE_XRP.getValue()));
+        BigDecimal onePercent = realLotto.divide(new BigDecimal(BigDecimalEnum.ONE_PERCENT.getValue()));
+        BigDecimal donation = onePercent.multiply(new BigDecimal(ConstantsEnum.DONATE.getValue()));
+        BigDecimal allLotto = onePercent.multiply(new BigDecimal(ConstantsEnum.PRIZE.getValue()));
+        BigDecimal lottoNow = lottoCredits.subtract(allLotto.add(donation));
 
-        user.setCredits(playerCredits + allLotto);
+        lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
+        sendDonationToTheOwner(donation, Prize.SUPER_LOTTO);
 
-        donationsRepo.save(Donations.builder()
-                .totalDonations(totalDonations)
-                .typeWin(Prize.LOTTO)
-                .donations(donation)
-                .build());
-
-        lottoRepo.save(Lotto.builder()
-                .totalLottoCredits(0L)
-                .build());
-
-        userRepo.save(user);
-
-        return WonOrNotWon.builder()
-                .totalLoansNow(convertForUserCalculation(user.getCredits()))
-                .win(convertForUserCalculation(allLotto))
-                .replyToBet(Prize.SUPER_LOTTO)
-                .totalLottoNow(lottoCredits)
-                .build();
+        return sendPayment(userDto, lottoNow, allLotto, Prize.SUPER_LOTTO);
     }
 
 
 
-    private WonOrNotWon takeIntoAccountTheBias(User user, long playerCredits, Long bet,
-                                               RedBlack redBlackBet, long arsenalCredit, long lottoCredits,
-                                               Condition condition, int bias) {
-
-        Long resultCredits = bet * ConstantsEnum.FOR_USER_CALCULATIONS.getValue();
-
-        user.setCredits(playerCredits - resultCredits);
+    private CommandAnswerDto takeIntoAccountTheBias(UserDto userDto, BigDecimal lottoCredits, Condition condition,
+                                                    Integer bias) {
+        BigDecimal roundTheBet = roundTheBet(userDto.getBet());
+        BigDecimal lottoNow = lottoCredits;
 
         // перенос средств в лото или арсенал
         if (bias == ConstantsEnum.ONE_BIAS.getValue()) {
-            lottoRepo.save(Lotto.builder()
-                    .totalLottoCredits(lottoCredits + resultCredits)
-                    .build());
-        } else {
-            arsenalRepo.save(Arsenal.builder()
-                    .credits(arsenalCredit + resultCredits)
-                    .build());
+            Lotto lotto = lottoRepo.save(Lotto.builder().totalLotto(lottoCredits.add(roundTheBet)).build());
+            lottoNow = lotto.getTotalLotto();
         }
-
         // уменьшаем смещение
         condition.setBias(bias - 1);
-
         conditionRepo.save(condition);
-        userRepo.save(user);
-
-        return WonOrNotWon.builder()
-                .totalLottoNow(lottoCredits)
-                .replyToBet(Prize.ZERO)
-                .win(0L)
-                .build();
+        return sendPayment(userDto, lottoNow, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()), Prize.ZERO);
     }
 
 
 
-    private WonOrNotWon wonOrNotWon(User user, long playerCredits, Long bet, RedBlack redBlackBet,
-                                    int generatedLotto, long arsenalCredits, long lottoCredits, Condition condition) {
-
+    private CommandAnswerDto wonOrNotWon(UserDto userDto, Integer generatedLotto, BigDecimal lottoCredits,
+                                         Condition condition) {
         // если лото позволяет дробление
         if (checkForWinningsLotto(lottoCredits)) {
             if (generatedLotto == ConstantsEnum.LOTTO.getValue())
-                return point(user, playerCredits, lottoCredits);
+                return point(userDto, lottoCredits);
             if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue())
-                return superLotto(user, playerCredits, lottoCredits);
+                return superLotto(userDto, lottoCredits);
         }
-
-        Enums redBlackConvert = Converter.convert(generatedLotto);
-
-        Long resultCredits = bet * ConstantsEnum.FOR_USER_CALCULATIONS.getValue();
 
         // если игрок выиграл
-        if (redBlackConvert.equals(redBlackBet)) {
+        if (Converter.convert(generatedLotto).equals(Converter.getColorBet(userDto.getDestinationTag()))) {
             condition.setBias(ConstantsEnum.BIAS.getValue());
-            user.setCredits(playerCredits + resultCredits);
-
-            arsenalRepo.save(Arsenal.builder()
-                    .credits(arsenalCredits - resultCredits)
-                    .build());
-
             conditionRepo.save(condition);
-            userRepo.save(user);
-
-            return WonOrNotWon.builder()
-                    .totalLottoNow(lottoCredits)
-                    .replyToBet(Prize.WIN)
-                    .win(bet)
-                    .build();
+            return sendPayment(userDto, lottoCredits, roundTheBet(userDto.getBet()).add(roundTheBet(userDto.getBet())),
+                    Prize.WIN);
         }
 
-        user.setCredits(playerCredits - resultCredits);
-
-        lottoRepo.save(Lotto.builder()
-                .totalLottoCredits(lottoCredits + resultCredits)
-                .build());
-
-        userRepo.save(user);
-
-        return WonOrNotWon.builder()
-                .totalLoansNow(convertForUserCalculation(user.getCredits()))
-                .totalLottoNow(lottoCredits)
-                .replyToBet(Prize.ZERO)
-                .win(0L)
-                .build();
+        lottoRepo.save(Lotto.builder().totalLotto(lottoCredits.add(userDto.getBet())).build());
+        return sendPayment(userDto, lottoCredits, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()), Prize.ZERO);
     }
 
 
 
-    private boolean checkForWinningsLotto(long lottoCredits) {
-        return lottoCredits >= ConstantsEnum.MINIMUM_LOTTO_FOR_DRAWING_POSSIBILITIES.getValue();
+
+    private void sendDonationToTheOwner(BigDecimal donation, Prize prize) {
+        Payouts payouts = payoutsRepo.save(Payouts.builder()
+                .tagOut(Prize.DONATION.getValue() + prize.getValue())
+                .account(StringEnum.DONATION_ADDRESS.getValue())
+                .destinationTag(Prize.DONATION.getValue())
+                .uuid(UUID.randomUUID().toString())
+                .data(Prize.DONATION.getValue())
+                .availableFunds(donation)
+                .payouts(donation)
+                .bet(donation)
+                .build());
+
+        template.convertAndSend("make-payment", CommandAnswerDto.builder()
+                .baseUserUuid(Prize.DONATION.getValue())
+                .baseUserId(payouts.getId())
+                .uuid(payouts.getUuid())
+                .id(payouts.getId())
+                .build());
+    }
+
+    private CommandAnswerDto sendPayment(UserDto userDto, BigDecimal lottoCredits, BigDecimal pay, Prize prize) {
+        StringBuilder stringBuilder = new StringBuilder(lottoCredits.toString());
+        Payouts payouts = payoutsRepo.save(Payouts.builder()
+                .destinationTag(userDto.getDestinationTag())
+                .availableFunds(userDto.getAvailableFunds())
+                .uuid(UUID.randomUUID().toString())
+                .account(userDto.getAccount())
+                .payouts(roundTheBet(pay))
+                .data(userDto.getData())
+                .bet(userDto.getBet())
+                .tagOut(stringBuilder
+                        .replace(stringBuilder.length() - 6, stringBuilder.length(), "")
+                        .insert(0, prize.getValue()).toString())
+                .build());
+
+        return CommandAnswerDto.builder()
+                .baseUserUuid(userDto.getUuid())
+                .baseUserId(userDto.getId())
+                .uuid(payouts.getUuid())
+                .id(payouts.getId())
+                .build();
+    }
+
+    private boolean checkForWinningsLotto(BigDecimal lottoCredits) {
+        return lottoCredits
+                .compareTo(new BigDecimal(ConstantsEnum.MINIMUM_LOTTO_FOR_DRAWING_POSSIBILITIES.getValue())) >= 0;
+    }
+
+    private BigDecimal roundTheBet(BigDecimal bet) {
+        StringBuilder stringBuilder = new StringBuilder(bet.toString());
+        if (stringBuilder.length() > 4) {
+            stringBuilder.replace(stringBuilder.length() - 4, stringBuilder.length(), "0000");
+        }
+        return new BigDecimal(stringBuilder.toString());
     }
 }

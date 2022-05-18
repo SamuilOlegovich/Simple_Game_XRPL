@@ -11,15 +11,12 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.Column;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.samuilolegovich.enums.InformationAboutRates.*;
 import static com.samuilolegovich.enums.Prize.*;
 import static com.samuilolegovich.enums.RedBlack.*;
-import static com.samuilolegovich.util.Converter.convertForUserCalculation;
 import static com.samuilolegovich.util.LocaleHelper.getLocale;
 import static com.samuilolegovich.util.ReadMessageHelper.getMessageForPlayer;
 
@@ -28,8 +25,6 @@ import static com.samuilolegovich.util.ReadMessageHelper.getMessageForPlayer;
 public class BetServiceImpl implements BetService {
     @Autowired
     private ConditionRepo conditionRepo;
-    @Autowired
-    private DonationsRepo donationsRepo;
     @Autowired
     private ArsenalRepo arsenalRepo;
     @Autowired
@@ -73,168 +68,52 @@ public class BetServiceImpl implements BetService {
                         .build());
     }
 
-    private RedBlack getColorBet(String destinationTag) {
-        if (destinationTag.equalsIgnoreCase(RED.getValue())) {
-            return RED;
-        }
-        if (destinationTag.equalsIgnoreCase(BLACK.getValue())) {
-            return BLACK;
-        }
-        if (destinationTag.equalsIgnoreCase(RedBlack.ZERO.getValue())) {
-            return RedBlack.ZERO;
-        }
-        if (destinationTag.equalsIgnoreCase(RedBlack.GET_LOTTO_VOLUME.getValue())) {
-            return RedBlack.GET_LOTTO_VOLUME;
-        }
-        return OTHER;
-    }
 
-
-    private CommandAnswerDto placeBet(UserDto user) {
+    private CommandAnswerDto placeBet(UserDto userDto) {
         BigDecimal lottoNow = lottoRepo.findFirstByOrderByCreatedAtDesc().getTotalLotto();
 
-        // недопустимая ставка - больше 100 XRP или меньше 0.1XRP== 0
-        if (user.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) > 0
-                || user.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) < 0 ) {
-            StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
-
-            Payouts payouts = payoutsRepo.save(Payouts.builder()
-                    .destinationTag(user.getDestinationTag())
-                    .availableFunds(user.getAvailableFunds())
-                    .uuid(UUID.randomUUID().toString())
-                    .account(user.getAccount())
-                    .payouts(new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()))
-                    .tagOut(stringBuilder
-                            .replace(stringBuilder.length() - 6, stringBuilder.length(), "")
-                            .insert(0, INFO.getValue()).toString())
-                    .data(user.getData())
-                    .bet(user.getBet())
-                    .build());
-
-            return CommandAnswerDto.builder()
-                    .baseUserUuid(user.getUuid())
-                    .baseUserId(user.getId())
-                    .uuid(payouts.getUuid())
-                    .id(payouts.getId())
-                    .build();
-        }
-
-        // недопустимая ставка < 0
-        if (bet < 0) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(INVALID_BET_VALUE_LESS_ZERO, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .informationForBet(INCORRECT_RATE)
-                    .claimedCombination(redBlackBet)
-                    .lottoNow(lottoNow)
-                    .win(0L)
-                    .build();
-        }
-
         // ставка выше допустимой
-        if (bet > ConstantsEnum.MAXIMUM_RATE.getValue()) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(INVALID_BET_VALUE_MAXIMUM_RATE, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .informationForBet(MAXIMUM_RATE)
-                    .claimedCombination(redBlackBet)
-                    .lottoNow(lottoNow)
-                    .win(0L)
-                    .build();
+        if (userDto.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) > 0 ) {
+            return getCommandAnswer(userDto, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()),
+                    lottoNow, InformationAboutRates.MAXIMUM_RATE);
         }
-
-        // если недостаточно кредитов у юзера для ставки
-        if (convertForUserCalculation(playerCredits) < (long) bet) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(YOUR_ACCOUNT_IS_NOT_ENOUGH_CREDITS_TO_BET, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .informationForBet(INSUFFICIENT_FUNDS)
-                    .claimedCombination(redBlackBet)
-                    .lottoNow(lottoNow)
-                    .win(0L)
-                    .build();
+        // ставка  ниже допустимой - 0.01XRP
+        if (userDto.getBet().compareTo(new BigDecimal(BigDecimalEnum.MAXIMUM_RATE.getValue())) < 0) {
+            return getCommandAnswer(userDto, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()),
+                    lottoNow, InformationAboutRates.MINIMUM_RATE);
         }
-
+        // если недостаточно средств на кошельке для ответной стаки
+        if (userDto.getBet().multiply(new BigDecimal(3)).compareTo(userDto.getAvailableFunds()) > 0) {
+            return getCommandAnswer(userDto, userDto.getBet(),  lottoNow, InformationAboutRates.NOT_CREDIT_FOR_ANSWER);
+        }
         // если все хорошо делаем ставку
-        WonOrNotWon wonOrNotWon = betLogic.calculateTheWin(user, bet, redBlackBet);
-        Enums enums = wonOrNotWon.getReplyToBet();
+        return betLogic.calculateTheWin(userDto);
+    }
 
-        // обрабатываем ответы по ставке
 
-        // не достаточно кредитов в запасе на ответ ставке
-        if (enums.equals(NOT_ENOUGH_CREDIT_FOR_ANSWER)) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(NOT_CREDIT_FOR_ANSWER, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .informationForBet(NOT_ENOUGH_CREDIT_FOR_ANSWER)
-                    .claimedCombination(redBlackBet)
-                    .lottoNow(lottoNow)
-                    .win(0L)
-                    .build();
-        }
+    private CommandAnswerDto getCommandAnswer(UserDto user, BigDecimal pay, BigDecimal lottoNow,
+                                              InformationAboutRates enums) {
+        StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
 
-        // В методы ниже вставить код чтобы они отправляли сообщения о выигрыше в общий чат сообщений
-        // в формате - никНейм выигарл - сколько
+        Payouts payouts = payoutsRepo.save(Payouts.builder()
+                .destinationTag(user.getDestinationTag())
+                .availableFunds(user.getAvailableFunds())
+                .uuid(UUID.randomUUID().toString())
+                .account(user.getAccount())
+                .data(user.getData())
+                .bet(user.getBet())
+                .payouts(pay)
+                .tagOut(stringBuilder
+                        .replace(stringBuilder.length() - 6, stringBuilder.length(), "")
+                        .insert(0, enums.getValue()).toString())
+                .build());
 
-        // выиграл супер лото 42
-        if (enums.equals(SUPER_LOTTO)) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(PLAYER_WIN_SUPER_LOTTO, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .claimedCombination(redBlackBet)
-                    .winningCombination(SUPER_LOTTO)
-                    .informationForBet(SUPER_LOTTO)
-                    .win(wonOrNotWon.getWin())
-                    .lottoNow(lottoNow)
-                    .build();
-        }
-
-        // выиграл лото 21
-        if (enums.equals(LOTTO)) {
-            return AnswerToBetDto.builder()
-                    .comment(getMessageForPlayer(PLAYER_WIN_LOTTO, getLocale(EN)))
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .claimedCombination(redBlackBet)
-                    .win(wonOrNotWon.getWin())
-                    .winningCombination(LOTTO)
-                    .informationForBet(LOTTO)
-                    .lottoNow(lottoNow)
-                    .build();
-        }
-
-        // проиграл
-        if (enums.equals(ZERO)) {
-            return AnswerToBetDto.builder()
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .winningCombination(redBlackBet.equals(RED) ? BLACK : RED)
-                    .comment(getMessageForPlayer(PLAYER_LOST, getLocale(EN)))
-                    .claimedCombination(redBlackBet)
-                    .informationForBet(ZERO)
-                    .lottoNow(lottoNow)
-                    .win(0L)
-                    .build();
-        }
-
-        // выиграл
-        if (enums.equals(Prize.WIN)) {
-            return AnswerToBetDto.builder()
-                    .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                    .comment(getMessageForPlayer(PLAYER_WIN, getLocale(EN)))
-                    .claimedCombination(redBlackBet)
-                    .winningCombination(redBlackBet)
-                    .win(wonOrNotWon.getWin())
-                    .informationForBet(WIN)
-                    .lottoNow(lottoNow)
-                    .build();
-        }
-
-        return AnswerToBetDto.builder()
-                .comment(getMessageForPlayer(SOMETHING_WENT_WRONG, getLocale(EN)))
-                .informationForBet(InformationAboutRates.SOMETHING_WENT_WRONG)
-                .totalPlayerCredits(convertForUserCalculation(playerCredits))
-                .claimedCombination(redBlackBet)
-                .lottoNow(lottoNow)
-                .win(0L)
+        return CommandAnswerDto.builder()
+                .baseUserUuid(user.getUuid())
+                .baseUserId(user.getId())
+                .uuid(payouts.getUuid())
+                .id(payouts.getId())
                 .build();
     }
+
 }

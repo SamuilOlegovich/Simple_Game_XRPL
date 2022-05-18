@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -19,10 +20,10 @@ import java.time.LocalDateTime;
 public class Condition {
     @Id // @ID - Важно чтобы была из библиотеке -> javax.persistence.Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    public long id;
-    private long bet;
+    public Long id;
+    private BigDecimal bet;
     // доп смещении для генератора
-    private int bias;
+    private Integer bias;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
