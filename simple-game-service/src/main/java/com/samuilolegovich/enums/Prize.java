@@ -1,5 +1,6 @@
 package com.samuilolegovich.enums;
 
+import com.samuilolegovich.enums.interfaces.Enums;
 import lombok.Getter;
 
 public enum Prize implements Enums {
@@ -12,7 +13,6 @@ public enum Prize implements Enums {
 
     @Getter
     private String value;
-
     Prize(String value) {
         this.value =value;
     }

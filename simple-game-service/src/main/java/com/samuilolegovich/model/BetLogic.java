@@ -4,6 +4,7 @@ import com.samuilolegovich.domain.*;
 import com.samuilolegovich.dto.CommandAnswerDto;
 import com.samuilolegovich.dto.UserDto;
 import com.samuilolegovich.enums.*;
+import com.samuilolegovich.model.interfaces.Bets;
 import com.samuilolegovich.repository.*;
 import com.samuilolegovich.util.Converter;
 import com.samuilolegovich.util.Generator;
@@ -17,23 +18,18 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class BetLogic {
+public class BetLogic implements Bets {
     private final ConditionRepo conditionRepo;
-    private final ArsenalRepo arsenalRepo;
     private final RabbitTemplate template;
     private final PayoutsRepo payoutsRepo;
     private final LottoRepo lottoRepo;
 
 
-
+    @Override
     public CommandAnswerDto calculateTheWin(UserDto userDto) {
-        // берем последнюю запись в арсенале (она максимально актуальна на данный момент)
-        Arsenal arsenal = arsenalRepo.findFirstByOrderByCreatedAtDesc();
-        BigDecimal arsenalCredit = arsenal.getCredits();
-
         // Получаем состояния системы
         Lotto lotto = lottoRepo.findFirstByOrderByCreatedAtDesc();
-        Condition condition = conditionRepo.findByBet(userDto.getBet());
+        Condition condition = conditionRepo.findByBet(roundTheBet(userDto.getBet()));
 
         // получаем данные по состоянию
         BigDecimal lottoCredits = lotto.getTotalLotto();

@@ -1,18 +1,14 @@
 package com.samuilolegovich.enums;
 
+import com.samuilolegovich.enums.interfaces.Enums;
 import lombok.Getter;
 
 public enum InformationAboutRates implements Enums {
-    NOT_ENOUGH_CREDIT_FOR_ANSWER(""),
-    SOMETHING_WENT_WRONG(""),
-    INSUFFICIENT_FUNDS(""),
-    INCORRECT_RATE(""),
-
+    NOT_CREDIT_FOR_ANSWER("22"),
+    PLAYER_NOT_FOUND("404"),
     MAXIMUM_RATE("99"),
     MINIMUM_RATE("11"),
     INFO("13"),
-
-    NOT_CREDIT_FOR_ANSWER("22"),
     ;
 
     @Getter

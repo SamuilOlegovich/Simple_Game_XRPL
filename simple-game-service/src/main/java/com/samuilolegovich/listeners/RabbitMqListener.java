@@ -1,10 +1,6 @@
 package com.samuilolegovich.listeners;
 
-import com.samuilolegovich.dto.BetDto;
 import com.samuilolegovich.dto.CommandDto;
-import com.samuilolegovich.enums.ConstantsEnum;
-import com.samuilolegovich.enums.Enums;
-import com.samuilolegovich.enums.RedBlack;
 import com.samuilolegovich.service.interfaces.BetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +10,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.json.JSONObject;
-
-import java.math.BigDecimal;
-import java.util.UUID;
 
 @Component
 @EnableRabbit // нужно для активации обработки аннотаций @RabbitListener

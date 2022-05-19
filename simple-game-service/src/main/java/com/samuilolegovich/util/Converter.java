@@ -1,11 +1,9 @@
 package com.samuilolegovich.util;
 
 import com.samuilolegovich.enums.ConstantsEnum;
-import com.samuilolegovich.enums.Enums;
+import com.samuilolegovich.enums.interfaces.Enums;
 import com.samuilolegovich.enums.Prize;
 import com.samuilolegovich.enums.RedBlack;
-
-import static com.samuilolegovich.enums.RedBlack.*;
 
 public class Converter {
 

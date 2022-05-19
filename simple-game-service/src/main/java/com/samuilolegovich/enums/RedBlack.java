@@ -1,5 +1,6 @@
 package com.samuilolegovich.enums;
 
+import com.samuilolegovich.enums.interfaces.Enums;
 import lombok.Getter;
 
 public enum RedBlack implements Enums {
@@ -8,7 +9,6 @@ public enum RedBlack implements Enums {
     OTHER("10101"),
     ZERO("10001"),
     RED("999"),
-
     ;
 
     @Getter

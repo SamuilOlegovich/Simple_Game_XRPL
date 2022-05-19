@@ -4,7 +4,6 @@ import lombok.Getter;
 
 public enum ConstantsEnum {
     FOR_INTERNAL_ACCOUNTING(100),
-//    FOR_USER_CALCULATIONS(10),
     MAXIMUM_RATE(1000),
     ZERO_BIAS(0),
     ONE_BIAS(1),
@@ -18,10 +17,6 @@ public enum ConstantsEnum {
     START(1),
     BIAS(2),
     MINIMUM_LOTTO_FOR_DRAWING_POSSIBILITIES(130000000),
-//    ZERO(1000),
-//    RED(1001),
-//    BLACK(1002),
-//    GET_LOTTO_VOLUME(1007)
     ;
 
     @Getter

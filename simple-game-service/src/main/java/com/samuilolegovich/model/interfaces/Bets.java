@@ -1,9 +1,8 @@
 package com.samuilolegovich.model.interfaces;
 
-import com.samuilolegovich.domain.User;
-import com.samuilolegovich.dto.WonOrNotWon;
-import com.samuilolegovich.enums.RedBlack;
+import com.samuilolegovich.dto.CommandAnswerDto;
+import com.samuilolegovich.dto.UserDto;
 
 public interface Bets {
-    WonOrNotWon calculateTheWin(User user, int bet, RedBlack redBlack);
+    CommandAnswerDto calculateTheWin(UserDto userDto);
 }

@@ -9,6 +9,9 @@ import java.util.Locale;
 @SpringBootApplication
 @EnableDiscoveryClient
 public class SimpleGameApplication {
+
+    // вынести округление в формирование модели юсер дто
+
     public static void main(String[] args) throws InterruptedException {
            SpringApplication.run(SimpleGameApplication.class, args);
         // Обязательно стоит установить локаль иначе будет падать с ошибкой парсинга даты

@@ -5,7 +5,6 @@ import java.security.SecureRandom;
 public class Generator {
     public static SecureRandom secureRandom = new SecureRandom();
 
-
     // генерирует число
     public static Integer generate() {
 //        return (byte) ( Math.random() * 101 );

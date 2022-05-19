@@ -1,4 +1,4 @@
-package com.samuilolegovich.controller;
+package com.samuilolegovich.controllers;
 
 import org.springframework.web.bind.annotation.RestController;
 
