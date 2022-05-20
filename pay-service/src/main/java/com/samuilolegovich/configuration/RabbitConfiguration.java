@@ -14,11 +14,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitConfiguration.class);
-    public static final String BALANCE_NOT_TAG_ROUTING_KEY = "balance-not-tag";
-    public static final String OTHER_CHANGES_ROUTING_KEY = "other-changes";
-    public static final String BALANCE_ROUTING_KEY = "balance";
-    public static final String TOPIC_EXCHANGE = "topic.changes";
-
 
 //    @Bean
 //    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
@@ -75,28 +70,56 @@ public class RabbitConfiguration {
     @Bean
     public Queue queueAccountBalanceChangeNotTag() { return new Queue("queue-account-balance-change-not-tag"); }
 
+    @Bean
+    public Queue queueAccountBalanceChangesTest() {
+        return new Queue("queue-account-balance-changes-test");
+    }
+
+    @Bean
+    public Queue queueAccountOtherChangesTest() {
+        return new Queue("queue-account-other-changes-test");
+    }
+
+    @Bean
+    public Queue queueAccountBalanceChangeNotTagTest() { return new Queue("queue-account-balance-change-not-tag-test"); }
+
 
 
     @Bean
     public TopicExchange topicExchange() {
-        return new TopicExchange(TOPIC_EXCHANGE, true, false);
+        return new TopicExchange(StringEnum.TOPIC_EXCHANGE.getValue(), true, false);
     }
 
 
 
     @Bean
     public Binding bindingBalance() {
-        return BindingBuilder.bind(queueAccountBalanceChanges()).to(topicExchange()).with(BALANCE_ROUTING_KEY);
+        return BindingBuilder.bind(queueAccountBalanceChanges()).to(topicExchange()).with(StringEnum.BALANCE_ROUTING_KEY.getValue());
     }
 
     @Bean
     public Binding bindingQueueAccountBalanceChangeNotTag() {
-        return BindingBuilder.bind(queueAccountBalanceChangeNotTag()).to(topicExchange()).with(BALANCE_NOT_TAG_ROUTING_KEY);
+        return BindingBuilder.bind(queueAccountBalanceChangeNotTag()).to(topicExchange()).with(StringEnum.BALANCE_NOT_TAG_ROUTING_KEY.getValue());
     }
 
     @Bean
     public Binding bindingQueueAccountOtherChanges() {
-        return BindingBuilder.bind(queueAccountOtherChanges()).to(topicExchange()).with(OTHER_CHANGES_ROUTING_KEY);
+        return BindingBuilder.bind(queueAccountOtherChanges()).to(topicExchange()).with(StringEnum.OTHER_CHANGES_ROUTING_KEY.getValue());
+    }
+
+    @Bean
+    public Binding bindingBalanceTest() {
+        return BindingBuilder.bind(queueAccountBalanceChangesTest()).to(topicExchange()).with(StringEnum.BALANCE_ROUTING_KEY_TEST.getValue());
+    }
+
+    @Bean
+    public Binding bindingQueueAccountBalanceChangeNotTagTest() {
+        return BindingBuilder.bind(queueAccountBalanceChangeNotTagTest()).to(topicExchange()).with(StringEnum.BALANCE_NOT_TAG_ROUTING_KEY_TEST.getValue());
+    }
+
+    @Bean
+    public Binding bindingQueueAccountOtherChangesTest() {
+        return BindingBuilder.bind(queueAccountOtherChangesTest()).to(topicExchange()).with(StringEnum.OTHER_CHANGES_ROUTING_KEY_TEST.getValue());
     }
 
 }

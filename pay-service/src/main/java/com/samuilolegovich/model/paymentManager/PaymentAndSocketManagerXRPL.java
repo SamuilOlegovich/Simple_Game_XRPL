@@ -43,6 +43,9 @@ public class PaymentAndSocketManagerXRPL implements PaymentManager, SocketManage
     @Autowired
     @Qualifier("streamSubscriberToAccountBalanceChanges")
     private StreamSubscriber streamSubscriberToAccountBalanceChanges;
+    @Autowired
+    @Qualifier("streamSubscriberToAccountBalanceChangesTest")
+    private StreamSubscriber streamSubscriberToAccountBalanceChangesTest;
 
 
     @PostConstruct
@@ -299,12 +302,16 @@ public class PaymentAndSocketManagerXRPL implements PaymentManager, SocketManage
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("accounts", List.of(getClassicAddress(b)));
         try {
-            socket.subscribe(EnumSet.of(StreamSubscriptionEnum.ACCOUNT_CHANNELS), parameters, (subscription, message) -> {
-                if (message.getJSONObject("transaction").has("DestinationTag")) {
-                    LOG.info("Получил сообщение об изменении баланса на счету от подписки {}: {}", subscription.getMessageType(), message);
-                }
-                LOG.info("Получил сообщение от подписки {}: {}", subscription.getMessageType(), message);
-            });
+            if (b) {
+                socket.subscribe(EnumSet.of(StreamSubscriptionEnum.ACCOUNT_CHANNELS),
+                        parameters,
+                        streamSubscriberToAccountBalanceChanges);
+            }
+            if (!b) {
+                socketTest.subscribe(EnumSet.of(StreamSubscriptionEnum.ACCOUNT_CHANNELS),
+                        parameters,
+                        streamSubscriberToAccountBalanceChangesTest);
+            }
         } catch (InvalidStateException e) {
             e.printStackTrace();
         }

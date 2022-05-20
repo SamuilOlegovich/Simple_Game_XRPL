@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
-@Qualifier("transaction-execution-service")
-public class TransactionExecutionService implements TransactionExecution {
+@Qualifier("transaction-execution-test")
+public class TransactionExecutionTest implements TransactionExecution {
     @Autowired
     private PaymentAndSocketManagerXRPL paymentAndSocketManagerXRPL;
 
@@ -18,6 +18,6 @@ public class TransactionExecutionService implements TransactionExecution {
         paymentAndSocketManagerXRPL.sendPayment(payoutsDto.getAccount(),
                 // вот тут возможна ошибка если у нас будет сильно большое лото
                 Integer.parseInt(payoutsDto.getTagOut()),
-                payoutsDto.getPayouts(), true);
+                payoutsDto.getPayouts(), false);
     }
 }

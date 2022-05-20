@@ -9,12 +9,12 @@ import javax.persistence.*;
 import java.math.BigDecimal;
 
 @Data
-@Table(name = "payouts")
+@Table(name = "payouts_test")
 @Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Payouts {
+public class PayoutsTest {
     @Id // @ID - Важно чтобы была из библиотеке -> javax.persistence.Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;

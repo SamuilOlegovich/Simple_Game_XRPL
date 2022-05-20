@@ -4,11 +4,12 @@ import com.samuilolegovich.domain.Payouts;
 import com.samuilolegovich.domain.User;
 import com.samuilolegovich.dto.*;
 import com.samuilolegovich.enums.*;
-import com.samuilolegovich.model.BetLogic;
+import com.samuilolegovich.model.interfaces.Bets;
 import com.samuilolegovich.repository.*;
-import com.samuilolegovich.service.interfaces.BetService;
+import com.samuilolegovich.service.interfaces.Bet;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,15 +18,17 @@ import java.util.UUID;
 
 @Service
 @AllArgsConstructor
-public class BetServiceImpl implements BetService {
+@Qualifier("bet-service")
+public class BetService implements Bet {
     @Autowired
     private PayoutsRepo payoutsRepo;
     @Autowired
     private LottoRepo lottoRepo;
     @Autowired
-    private BetLogic betLogic;
-    @Autowired
     private UserRepo userRepo;
+    @Autowired
+    @Qualifier("bet-logic")
+    private Bets betLogic;
 
 
     @Override
@@ -42,8 +45,10 @@ public class BetServiceImpl implements BetService {
                 .id(user.getId())
                 .build()))
                 .orElse(CommandAnswerDto.builder()
-                        .id(404L)
+                        .baseUserUuid(InformationAboutRates.PLAYER_NOT_FOUND.getValue())
                         .uuid(InformationAboutRates.PLAYER_NOT_FOUND.getValue())
+                        .baseUserId(404L)
+                        .id(404L)
                         .build());
     }
 
@@ -73,18 +78,18 @@ public class BetServiceImpl implements BetService {
     private CommandAnswerDto getCommandAnswer(UserDto user, BigDecimal pay, BigDecimal lottoNow,
                                               InformationAboutRates enums) {
         StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
+        stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
+                .insert(0, enums.getValue());
 
         Payouts payouts = payoutsRepo.save(Payouts.builder()
                 .destinationTag(user.getDestinationTag())
                 .availableFunds(user.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
+                .tagOut(stringBuilder.toString())
                 .account(user.getAccount())
                 .data(user.getData())
                 .bet(user.getBet())
                 .payouts(pay)
-                .tagOut(stringBuilder
-                        .replace(stringBuilder.length() - 6, stringBuilder.length(), "")
-                        .insert(0, enums.getValue()).toString())
                 .build());
 
         return CommandAnswerDto.builder()

@@ -10,7 +10,7 @@ import java.util.Locale;
 @EnableDiscoveryClient
 public class SimpleGameApplication {
 
-    // вынести округление в формирование модели юсер дто
+    // уюрать округление из логики, так как оно изначально внесено в формирование модели юзера
 
     public static void main(String[] args) throws InterruptedException {
            SpringApplication.run(SimpleGameApplication.class, args);

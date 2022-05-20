@@ -15,8 +15,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitConfiguration.class);
-    public static final String MAKE_PAYMENT_ROUTING_KEY = "make-payment";
-    public static final String TOPIC_EXCHANGE = "topic.payments";
 
 
 //    @Bean
@@ -65,18 +63,28 @@ public class RabbitConfiguration {
         return new Queue("to-make-a-payment");
     }
 
+    @Bean
+    public Queue queueToMakePaymentTest() {
+        return new Queue("to-make-a-payment-test");
+    }
+
 
 
 
     @Bean
     public TopicExchange topicExchange() {
-        return new TopicExchange(TOPIC_EXCHANGE, true, false);
+        return new TopicExchange(StringEnum.TOPIC_EXCHANGE.getValue(), true, false);
     }
 
 
 
     @Bean
     public Binding bindingBalance() {
-        return BindingBuilder.bind(queueToMakePayment()).to(topicExchange()).with(MAKE_PAYMENT_ROUTING_KEY);
+        return BindingBuilder.bind(queueToMakePayment()).to(topicExchange()).with(StringEnum.MAKE_PAYMENT_ROUTING_KEY.getValue());
+    }
+
+    @Bean
+    public Binding bindingBalanceTest() {
+        return BindingBuilder.bind(queueToMakePayment()).to(topicExchange()).with(StringEnum.MAKE_PAYMENT_ROUTING_KEY_TEST.getValue());
     }
 }

@@ -4,12 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum StreamSubscriptionEnum {
-    SERVER("server", "serverStatus"),
-    LEDGER("ledger", "ledgerClosed"),
     TRANSACTIONS("transactions", "transaction"),
     ACCOUNT_CHANNELS("ledger", "transaction"),
-//    FLOW_OF_INCOMING_AND_OUTGOING_TRANSACTIONS("ledger", "transaction"),
-//    ACCOUNT_CHANNELS("accounts", "transaction"),
+    SERVER("server", "serverStatus"),
+    LEDGER("ledger", "ledgerClosed"),
     ;
 
     private final String responseMessageType;

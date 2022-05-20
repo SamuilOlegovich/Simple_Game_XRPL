@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 
@@ -18,6 +19,7 @@ public class RabbitMqListener {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMqListenerTest.class);
 
     @Autowired
+    @Qualifier("transaction-preparation-service")
     private TransactionPreparation transactionPreparation;
 
     @RabbitListener(queues = "to-make-a-payment")
@@ -26,10 +28,10 @@ public class RabbitMqListener {
         JSONObject json = new JSONObject(message);
 
         transactionPreparation.prepareTransaction(CommandAnswerDto.builder()
-                .id(json.getLong("id"))
-                .uuid(json.getString("uuid"))
-                .baseUserId(json.getLong("baseUserId"))
                 .baseUserUuid(json.getString("baseUserUuid"))
+                .baseUserId(json.getLong("baseUserId"))
+                .uuid(json.getString("uuid"))
+                .id(json.getLong("id"))
                 .build());
     }
 }

@@ -9,12 +9,12 @@ import javax.persistence.*;
 import java.math.BigDecimal;
 
 @Data
-@Table(name = "payouts")
+@Table(name = "users_test")
 @Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Payouts {
+public class UserTest {
     @Id // @ID - Важно чтобы была из библиотеке -> javax.persistence.Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -22,12 +22,8 @@ public class Payouts {
     private String account;
     @Column(name = "destination_tag")
     private String destinationTag;
-    @Column(name = "tag_out")
-    private String tagOut;
     @Column(name = "available_funds")
     private BigDecimal availableFunds;
-    private BigDecimal payouts;
     private BigDecimal bet;
     private String data;
-    private Boolean isReal;
 }

@@ -3,7 +3,10 @@ package com.samuilolegovich.model;
 import com.samuilolegovich.domain.*;
 import com.samuilolegovich.dto.CommandAnswerDto;
 import com.samuilolegovich.dto.UserDto;
-import com.samuilolegovich.enums.*;
+import com.samuilolegovich.enums.BigDecimalEnum;
+import com.samuilolegovich.enums.ConstantsEnum;
+import com.samuilolegovich.enums.Prize;
+import com.samuilolegovich.enums.StringEnum;
 import com.samuilolegovich.model.interfaces.Bets;
 import com.samuilolegovich.repository.*;
 import com.samuilolegovich.util.Converter;
@@ -17,36 +20,35 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
-
 @Component
-@Qualifier("bet-logic")
 @RequiredArgsConstructor
-public class BetLogic implements Bets {
-    private final ConditionRepo conditionRepo;
+@Qualifier("bet-logic-test")
+public class BetLogicTest implements Bets {
+    private final ConditionRepoTest conditionRepoTest;
+    private final PayoutsRepoTest payoutsRepoTest;
+    private final LottoRepoTest lottoRepoTest;
     private final RabbitTemplate template;
-    private final PayoutsRepo payoutsRepo;
-    private final LottoRepo lottoRepo;
 
 
     @Override
     public CommandAnswerDto calculateTheWin(UserDto userDto) {
         // Получаем состояния системы
-        Lotto lotto = lottoRepo.findFirstByOrderByCreatedAtDesc();
-        Optional<Condition> conditionOptional = conditionRepo.findByBet(roundTheBet(userDto.getBet()));
-        Condition condition;
+        LottoTest lottoTest = lottoRepoTest.findFirstByOrderByCreatedAtDesc();
+        Optional<ConditionTest> conditionOptional = conditionRepoTest.findByBet(roundTheBet(userDto.getBet()));
+        ConditionTest conditionTest;
 
         if (conditionOptional.isEmpty()) {
-            condition = conditionRepo.save(Condition.builder()
-                    .bet(roundTheBet(userDto.getBet()))
+            conditionTest = conditionRepoTest.save(ConditionTest.builder()
+                    .bet(userDto.getBet())
                     .bias(0)
                     .build());
         } else {
-            condition = conditionOptional.get();
+            conditionTest = conditionOptional.get();
         }
 
         // получаем данные по состоянию
-        BigDecimal lottoCredits = lotto.getTotalLotto();
-        Integer bias = condition.getBias();
+        BigDecimal lottoCredits = lottoTest.getTotalLotto();
+        Integer bias = conditionTest.getBias();
 
         // генерируем число
         Integer generatedLotto = Generator.generate();
@@ -62,9 +64,9 @@ public class BetLogic implements Bets {
                     return superLotto(userDto, lottoCredits);
                 }
             }
-            return takeIntoAccountTheBias(userDto, lottoCredits, condition, bias);
+            return takeIntoAccountTheBias(userDto, lottoCredits, conditionTest, bias);
         }
-        return wonOrNotWon(userDto, generatedLotto, lottoCredits, condition);
+        return wonOrNotWon(userDto, generatedLotto, lottoCredits, conditionTest);
     }
 
 
@@ -77,7 +79,7 @@ public class BetLogic implements Bets {
         BigDecimal boobyPrize = onePercent.multiply(new BigDecimal(ConstantsEnum.BOOBY_PRIZE.getValue()));
         BigDecimal lottoNow = lottoCredits.subtract(boobyPrize.add(onePercent));
 
-        lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
+        lottoRepoTest.save(LottoTest.builder().totalLotto(lottoNow).build());
         sendDonationToTheOwner(onePercent, Prize.LOTTO);
 
         return sendPayment(userDto, lottoNow, boobyPrize, Prize.LOTTO);
@@ -91,7 +93,7 @@ public class BetLogic implements Bets {
         BigDecimal allLotto = onePercent.multiply(new BigDecimal(ConstantsEnum.PRIZE.getValue()));
         BigDecimal lottoNow = lottoCredits.subtract(allLotto.add(donation));
 
-        lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
+        lottoRepoTest.save(LottoTest.builder().totalLotto(lottoNow).build());
         sendDonationToTheOwner(donation, Prize.SUPER_LOTTO);
 
         return sendPayment(userDto, lottoNow, allLotto, Prize.SUPER_LOTTO);
@@ -99,26 +101,29 @@ public class BetLogic implements Bets {
 
 
 
-    private CommandAnswerDto takeIntoAccountTheBias(UserDto userDto, BigDecimal lottoCredits, Condition condition,
+    private CommandAnswerDto takeIntoAccountTheBias(UserDto userDto, BigDecimal lottoCredits, ConditionTest condition,
                                                     Integer bias) {
         BigDecimal roundTheBet = roundTheBet(userDto.getBet());
         BigDecimal lottoNow = lottoCredits;
 
         // перенос средств в лото или арсенал
+
         if (bias == ConstantsEnum.ONE_BIAS.getValue()) {
-            Lotto lotto = lottoRepo.save(Lotto.builder().totalLotto(lottoCredits.add(roundTheBet)).build());
-            lottoNow = lotto.getTotalLotto();
+            LottoTest lottoTest = lottoRepoTest.save(LottoTest.builder()
+                    .totalLotto(lottoCredits.add(roundTheBet))
+                    .build());
+            lottoNow = lottoTest.getTotalLotto();
         }
         // уменьшаем смещение
         condition.setBias(bias - 1);
-        conditionRepo.save(condition);
+        conditionRepoTest.save(condition);
         return sendPayment(userDto, lottoNow, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()), Prize.ZERO);
     }
 
 
 
     private CommandAnswerDto wonOrNotWon(UserDto userDto, Integer generatedLotto, BigDecimal lottoCredits,
-                                         Condition condition) {
+                                         ConditionTest condition) {
         // если лото позволяет дробление
         if (checkForWinningsLotto(lottoCredits)) {
             if (generatedLotto == ConstantsEnum.LOTTO.getValue())
@@ -130,12 +135,12 @@ public class BetLogic implements Bets {
         // если игрок выиграл
         if (Converter.convert(generatedLotto).equals(Converter.getColorBet(userDto.getDestinationTag()))) {
             condition.setBias(ConstantsEnum.BIAS.getValue());
-            conditionRepo.save(condition);
+            conditionRepoTest.save(condition);
             return sendPayment(userDto, lottoCredits, roundTheBet(userDto.getBet()).add(roundTheBet(userDto.getBet())),
                     Prize.WIN);
         }
 
-        lottoRepo.save(Lotto.builder().totalLotto(lottoCredits.add(userDto.getBet())).build());
+        lottoRepoTest.save(LottoTest.builder().totalLotto(lottoCredits.add(userDto.getBet())).build());
         return sendPayment(userDto, lottoCredits, new BigDecimal(BigDecimalEnum.INFO_OUT_PAY.getValue()), Prize.ZERO);
     }
 
@@ -143,7 +148,7 @@ public class BetLogic implements Bets {
 
 
     private void sendDonationToTheOwner(BigDecimal donation, Prize prize) {
-        Payouts payouts = payoutsRepo.save(Payouts.builder()
+        PayoutsTest payoutsTest = payoutsRepoTest.save(PayoutsTest.builder()
                 .tagOut(Prize.DONATION.getValue() + prize.getValue())
                 .account(StringEnum.DONATION_ADDRESS.getValue())
                 .destinationTag(Prize.DONATION.getValue())
@@ -154,11 +159,11 @@ public class BetLogic implements Bets {
                 .bet(donation)
                 .build());
 
-        template.convertAndSend(StringEnum.MAKE_PAYMENT_ROUTING_KEY.getValue(), CommandAnswerDto.builder()
+        template.convertAndSend(StringEnum.MAKE_PAYMENT_ROUTING_KEY_TEST.getValue(), CommandAnswerDto.builder()
                 .baseUserUuid(Prize.DONATION.getValue())
-                .baseUserId(payouts.getId())
-                .uuid(payouts.getUuid())
-                .id(payouts.getId())
+                .baseUserId(payoutsTest.getId())
+                .uuid(payoutsTest.getUuid())
+                .id(payoutsTest.getId())
                 .build());
     }
 
@@ -167,7 +172,7 @@ public class BetLogic implements Bets {
         stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
                 .insert(0, prize.getValue());
 
-        Payouts payouts = payoutsRepo.save(Payouts.builder()
+        PayoutsTest payoutsTest = payoutsRepoTest.save(PayoutsTest.builder()
                 .destinationTag(userDto.getDestinationTag())
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
@@ -181,8 +186,8 @@ public class BetLogic implements Bets {
         return CommandAnswerDto.builder()
                 .baseUserUuid(userDto.getUuid())
                 .baseUserId(userDto.getId())
-                .uuid(payouts.getUuid())
-                .id(payouts.getId())
+                .uuid(payoutsTest.getUuid())
+                .id(payoutsTest.getId())
                 .build();
     }
 
@@ -198,4 +203,5 @@ public class BetLogic implements Bets {
         }
         return new BigDecimal(stringBuilder.toString());
     }
+
 }

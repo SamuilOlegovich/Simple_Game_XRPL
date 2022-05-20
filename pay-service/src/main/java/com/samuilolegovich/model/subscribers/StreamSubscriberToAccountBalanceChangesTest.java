@@ -1,11 +1,13 @@
 package com.samuilolegovich.model.subscribers;
 
 import com.samuilolegovich.domain.User;
+import com.samuilolegovich.domain.UserTest;
 import com.samuilolegovich.dto.CommandDto;
 import com.samuilolegovich.enums.StringEnum;
 import com.samuilolegovich.model.sockets.enums.StreamSubscriptionEnum;
 import com.samuilolegovich.model.subscribers.interfaces.StreamSubscriber;
 import com.samuilolegovich.repository.UserRepo;
+import com.samuilolegovich.repository.UserRepoTest;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,14 +20,14 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Component
-@Qualifier("streamSubscriberToAccountBalanceChanges")
-public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber {
+@Qualifier("streamSubscriberToAccountBalanceChangesTest")
+public class StreamSubscriberToAccountBalanceChangesTest implements StreamSubscriber {
     private static final Logger LOG = LoggerFactory.getLogger(StreamSubscriberToAccountBalanceChanges.class);
 
     @Autowired
     private RabbitTemplate template;
     @Autowired
-    private UserRepo userRepo;
+    private UserRepoTest userRepoTest;
 
 
 
@@ -37,7 +39,7 @@ public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber
         if (message.has("transaction")
                 && message.getJSONObject("transaction").has("DestinationTag")
                 && message.getJSONObject("transaction").getString("Destination")
-                .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR.getValue())) {
+                .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR_TEST.getValue())) {
             // если в сообщении есть поле тег, а так же адресат получателя мой кошелек
             BigDecimal receivedFunds = new BigDecimal(message.getJSONObject("meta").getString("delivered_amount"));
             BigDecimal fundsOnTheBalanceSheet = new BigDecimal(message.getJSONObject("meta")
@@ -50,7 +52,7 @@ public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber
 
             String uuid = UUID.randomUUID().toString();
 
-            Long id = userRepo.save(User.builder()
+            Long id = userRepoTest.save(UserTest.builder()
                     .destinationTag(message.getJSONObject("transaction").getInt("DestinationTag") + "")
                     .data(message.getJSONObject("transaction").getBigDecimal("date").toString())
                     .account(message.getJSONObject("transaction").getString("Account"))
@@ -61,18 +63,18 @@ public class StreamSubscriberToAccountBalanceChanges implements StreamSubscriber
                     .getId();
 
             // из этой очереди получаем айди ставки - заходим в базу - находим и обрабатываем
-            template.convertAndSend(StringEnum.BALANCE_ROUTING_KEY.getValue(), CommandDto.builder().id(id).uuid(uuid).build());
+            template.convertAndSend(StringEnum.BALANCE_ROUTING_KEY_TEST.getValue(), CommandDto.builder().id(id).uuid(uuid).build());
 
         } else  if (message.has("transaction")
                 && message.getJSONObject("transaction").has("Destination")
                 && message.getJSONObject("transaction").getString("Destination")
-                .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR.getValue())) {
+                .equalsIgnoreCase(StringEnum.ADDRESS_FOR_SUBSCRIBE_AND_MONITOR_TEST.getValue())) {
             // если адрес получателя мой кошелек, но тега нет
-            template.convertAndSend(StringEnum.BALANCE_NOT_TAG_ROUTING_KEY.getValue(), message.toString());
+            template.convertAndSend(StringEnum.BALANCE_NOT_TAG_ROUTING_KEY_TEST.getValue(), message.toString());
 
         } else {
             // сообщения любого другого характера
-            template.convertAndSend(StringEnum.OTHER_CHANGES_ROUTING_KEY.getValue(), message.toString());
+            template.convertAndSend(StringEnum.OTHER_CHANGES_ROUTING_KEY_TEST.getValue(), message.toString());
         }
     }
 
