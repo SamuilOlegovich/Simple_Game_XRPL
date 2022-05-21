@@ -29,46 +29,60 @@ public class TransactionPreparationTest implements TransactionPreparation {
     private UserRepoTest userRepoTest;
 
     public void prepareTransaction(CommandAnswerDto commandAnswerDto) {
-        if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.PLAYER_NOT_FOUND.getValue())) {
-            Optional<PayoutsTest> optionalPayoutsTest
+        if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.PLAYER_NOT_FOUND.getValue())
+                && !commandAnswerDto.getBaseUserUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
+
+            Optional<PayoutsTest> optionalPayouts
                     = payoutsRepoTest.findByIdAndUuid(commandAnswerDto.getId(), commandAnswerDto.getUuid());
-            Optional<UserTest> optionalUserTest
+            Optional<UserTest> optionalUser
                     = userRepoTest.findByIdAndUuid(commandAnswerDto.getBaseUserId(), commandAnswerDto.getBaseUserUuid());
 
-            if (optionalPayoutsTest.isPresent() && optionalUserTest.isPresent()) {
+            if (optionalPayouts.isPresent() && optionalUser.isPresent()) {
                 transactionExecutionTest.executePayment(PayoutsDto.builder()
-                        .availableFunds(optionalPayoutsTest.get().getAvailableFunds())
-                        .destinationTag(optionalPayoutsTest.get().getDestinationTag())
-                        .account(optionalPayoutsTest.get().getAccount())
-                        .payouts(optionalPayoutsTest.get().getPayouts())
-                        .tagOut(optionalPayoutsTest.get().getTagOut())
-                        .data(optionalPayoutsTest.get().getData())
-                        .uuid(optionalPayoutsTest.get().getUuid())
-                        .bet(optionalPayoutsTest.get().getBet())
-                        .id(optionalPayoutsTest.get().getId())
+                        .availableFunds(optionalPayouts.get().getAvailableFunds())
+                        .destinationTag(optionalPayouts.get().getDestinationTag())
+                        .account(optionalPayouts.get().getAccount())
+                        .payouts(optionalPayouts.get().getPayouts())
+                        .tagOut(optionalPayouts.get().getTagOut())
+                        .data(optionalPayouts.get().getData())
+                        .uuid(optionalPayouts.get().getUuid())
+                        .bet(optionalPayouts.get().getBet())
+                        .id(optionalPayouts.get().getId())
                         .build());
-                payoutsRepoTest.delete(optionalPayoutsTest.get());
-                userRepoTest.delete(optionalUserTest.get());
-            }
+                payoutsRepoTest.delete(optionalPayouts.get());
+                userRepoTest.delete(optionalUser.get());
+            } else if (optionalPayouts.isPresent()) {
+                transactionExecutionTest.executePayment(PayoutsDto.builder()
+                        .availableFunds(optionalPayouts.get().getAvailableFunds())
+                        .destinationTag(optionalPayouts.get().getDestinationTag())
+                        .account(optionalPayouts.get().getAccount())
+                        .payouts(optionalPayouts.get().getPayouts())
+                        .tagOut(optionalPayouts.get().getTagOut())
+                        .data(optionalPayouts.get().getData())
+                        .uuid(optionalPayouts.get().getUuid())
+                        .bet(optionalPayouts.get().getBet())
+                        .id(optionalPayouts.get().getId())
+                        .build());
+                payoutsRepoTest.delete(optionalPayouts.get());
+            } else optionalUser.ifPresent(user -> userRepoTest.delete(user));
 
-        } else if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
-
-            Optional<PayoutsTest> optionalPayoutsTest
+        } else if (commandAnswerDto.getBaseUserUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
+            Optional<PayoutsTest> optionalPayouts
                     = payoutsRepoTest.findByIdAndUuid(commandAnswerDto.getId(), commandAnswerDto.getUuid());
 
-            if (optionalPayoutsTest.isPresent()) {
+            if (optionalPayouts.isPresent()) {
                 transactionExecutionTest.executePayment(PayoutsDto.builder()
-                        .availableFunds(optionalPayoutsTest.get().getAvailableFunds())
-                        .destinationTag(optionalPayoutsTest.get().getDestinationTag())
-                        .account(optionalPayoutsTest.get().getAccount())
-                        .payouts(optionalPayoutsTest.get().getPayouts())
-                        .tagOut(optionalPayoutsTest.get().getTagOut())
-                        .data(optionalPayoutsTest.get().getData())
-                        .uuid(optionalPayoutsTest.get().getUuid())
-                        .bet(optionalPayoutsTest.get().getBet())
-                        .id(optionalPayoutsTest.get().getId())
+                        .availableFunds(optionalPayouts.get().getAvailableFunds())
+                        .destinationTag(optionalPayouts.get().getDestinationTag())
+                        .payouts(optionalPayouts.get().getPayouts())
+                        .account(optionalPayouts.get().getAccount())
+                        .tagOut(StringEnum.DONATION.getValue())
+                        .data(optionalPayouts.get().getData())
+                        .uuid(optionalPayouts.get().getUuid())
+                        .bet(optionalPayouts.get().getBet())
+                        .id(optionalPayouts.get().getId())
                         .build());
-                payoutsRepoTest.delete(optionalPayoutsTest.get());
+                payoutsRepoTest.delete(optionalPayouts.get());
             }
         }
     }

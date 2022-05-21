@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Data;
 
+import javax.persistence.Column;
 import java.math.BigDecimal;
 
 @Data
@@ -13,7 +14,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class UserDto {
     private Long id;
+    private Long userId;
     private String uuid;
+    private String userUuid;
     private String account;
     private String destinationTag;
     private BigDecimal availableFunds;

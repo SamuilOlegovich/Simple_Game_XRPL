@@ -78,7 +78,7 @@ public class BetLogic implements Bets {
         BigDecimal lottoNow = lottoCredits.subtract(boobyPrize.add(onePercent));
 
         lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
-        sendDonationToTheOwner(onePercent, Prize.LOTTO);
+        sendDonationToTheOwner(userDto, onePercent, Prize.LOTTO);
 
         return sendPayment(userDto, lottoNow, boobyPrize, Prize.LOTTO);
     }
@@ -92,7 +92,7 @@ public class BetLogic implements Bets {
         BigDecimal lottoNow = lottoCredits.subtract(allLotto.add(donation));
 
         lottoRepo.save(Lotto.builder().totalLotto(lottoNow).build());
-        sendDonationToTheOwner(donation, Prize.SUPER_LOTTO);
+        sendDonationToTheOwner(userDto, donation, Prize.SUPER_LOTTO);
 
         return sendPayment(userDto, lottoNow, allLotto, Prize.SUPER_LOTTO);
     }
@@ -142,21 +142,23 @@ public class BetLogic implements Bets {
 
 
 
-    private void sendDonationToTheOwner(BigDecimal donation, Prize prize) {
+    private void sendDonationToTheOwner(UserDto userDto, BigDecimal donation, Prize prize) {
         Payouts payouts = payoutsRepo.save(Payouts.builder()
                 .tagOut(Prize.DONATION.getValue() + prize.getValue())
                 .account(StringEnum.DONATION_ADDRESS.getValue())
                 .destinationTag(Prize.DONATION.getValue())
                 .uuid(UUID.randomUUID().toString())
                 .data(Prize.DONATION.getValue())
+                .userUuid(userDto.getUserUuid())
+                .userId(userDto.getUserId())
                 .availableFunds(donation)
                 .payouts(donation)
                 .bet(donation)
                 .build());
 
         template.convertAndSend(StringEnum.MAKE_PAYMENT_ROUTING_KEY.getValue(), CommandAnswerDto.builder()
+                .baseUserId((long) ConstantsEnum.DONATION.getValue())
                 .baseUserUuid(Prize.DONATION.getValue())
-                .baseUserId(payouts.getId())
                 .uuid(payouts.getUuid())
                 .id(payouts.getId())
                 .build());
@@ -172,7 +174,9 @@ public class BetLogic implements Bets {
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
                 .tagOut(stringBuilder.toString())
+                .userUuid(userDto.getUserUuid())
                 .account(userDto.getAccount())
+                .userId(userDto.getUserId())
                 .payouts(roundTheBet(pay))
                 .data(userDto.getData())
                 .bet(userDto.getBet())

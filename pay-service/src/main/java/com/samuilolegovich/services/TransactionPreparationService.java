@@ -30,7 +30,9 @@ public class TransactionPreparationService implements TransactionPreparation {
     private UserRepo userRepo;
 
     public void prepareTransaction(CommandAnswerDto commandAnswerDto) {
-        if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.PLAYER_NOT_FOUND.getValue())) {
+        if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.PLAYER_NOT_FOUND.getValue())
+                && !commandAnswerDto.getBaseUserUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
+
             Optional<Payouts> optionalPayouts
                     = payoutsRepo.findByIdAndUuid(commandAnswerDto.getId(), commandAnswerDto.getUuid());
             Optional<User> optionalUser
@@ -50,9 +52,22 @@ public class TransactionPreparationService implements TransactionPreparation {
                         .build());
                 payoutsRepo.delete(optionalPayouts.get());
                 userRepo.delete(optionalUser.get());
-            }
+            } else if (optionalPayouts.isPresent()) {
+                transactionExecutionService.executePayment(PayoutsDto.builder()
+                        .availableFunds(optionalPayouts.get().getAvailableFunds())
+                        .destinationTag(optionalPayouts.get().getDestinationTag())
+                        .account(optionalPayouts.get().getAccount())
+                        .payouts(optionalPayouts.get().getPayouts())
+                        .tagOut(optionalPayouts.get().getTagOut())
+                        .data(optionalPayouts.get().getData())
+                        .uuid(optionalPayouts.get().getUuid())
+                        .bet(optionalPayouts.get().getBet())
+                        .id(optionalPayouts.get().getId())
+                        .build());
+                payoutsRepo.delete(optionalPayouts.get());
+            } else optionalUser.ifPresent(user -> userRepo.delete(user));
 
-        } else if (!commandAnswerDto.getUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
+        } else if (commandAnswerDto.getBaseUserUuid().equalsIgnoreCase(StringEnum.DONATION.getValue())) {
 
             Optional<Payouts> optionalPayouts
                     = payoutsRepo.findByIdAndUuid(commandAnswerDto.getId(), commandAnswerDto.getUuid());
@@ -61,9 +76,9 @@ public class TransactionPreparationService implements TransactionPreparation {
                 transactionExecutionService.executePayment(PayoutsDto.builder()
                         .availableFunds(optionalPayouts.get().getAvailableFunds())
                         .destinationTag(optionalPayouts.get().getDestinationTag())
-                        .account(optionalPayouts.get().getAccount())
                         .payouts(optionalPayouts.get().getPayouts())
-                        .tagOut(optionalPayouts.get().getTagOut())
+                        .account(optionalPayouts.get().getAccount())
+                        .tagOut(StringEnum.DONATION.getValue())
                         .data(optionalPayouts.get().getData())
                         .uuid(optionalPayouts.get().getUuid())
                         .bet(optionalPayouts.get().getBet())

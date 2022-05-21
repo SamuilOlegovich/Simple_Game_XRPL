@@ -75,26 +75,28 @@ public class BetService implements Bet {
     }
 
 
-    private CommandAnswerDto getCommandAnswer(UserDto user, BigDecimal pay, BigDecimal lottoNow,
+    private CommandAnswerDto getCommandAnswer(UserDto userDto, BigDecimal pay, BigDecimal lottoNow,
                                               InformationAboutRates enums) {
         StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
         stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
                 .insert(0, enums.getValue());
 
         Payouts payouts = payoutsRepo.save(Payouts.builder()
-                .destinationTag(user.getDestinationTag())
-                .availableFunds(user.getAvailableFunds())
+                .destinationTag(userDto.getDestinationTag())
+                .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
                 .tagOut(stringBuilder.toString())
-                .account(user.getAccount())
-                .data(user.getData())
-                .bet(user.getBet())
+                .userUuid(userDto.getUserUuid())
+                .account(userDto.getAccount())
+                .userId(userDto.getUserId())
+                .data(userDto.getData())
+                .bet(userDto.getBet())
                 .payouts(pay)
                 .build());
 
         return CommandAnswerDto.builder()
-                .baseUserUuid(user.getUuid())
-                .baseUserId(user.getId())
+                .baseUserUuid(userDto.getUuid())
+                .baseUserId(userDto.getId())
                 .uuid(payouts.getUuid())
                 .id(payouts.getId())
                 .build();

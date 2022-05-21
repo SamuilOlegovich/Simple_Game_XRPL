@@ -80,7 +80,7 @@ public class BetLogicTest implements Bets {
         BigDecimal lottoNow = lottoCredits.subtract(boobyPrize.add(onePercent));
 
         lottoRepoTest.save(LottoTest.builder().totalLotto(lottoNow).build());
-        sendDonationToTheOwner(onePercent, Prize.LOTTO);
+        sendDonationToTheOwner(userDto, onePercent, Prize.LOTTO);
 
         return sendPayment(userDto, lottoNow, boobyPrize, Prize.LOTTO);
     }
@@ -94,7 +94,7 @@ public class BetLogicTest implements Bets {
         BigDecimal lottoNow = lottoCredits.subtract(allLotto.add(donation));
 
         lottoRepoTest.save(LottoTest.builder().totalLotto(lottoNow).build());
-        sendDonationToTheOwner(donation, Prize.SUPER_LOTTO);
+        sendDonationToTheOwner(userDto, donation, Prize.SUPER_LOTTO);
 
         return sendPayment(userDto, lottoNow, allLotto, Prize.SUPER_LOTTO);
     }
@@ -147,21 +147,23 @@ public class BetLogicTest implements Bets {
 
 
 
-    private void sendDonationToTheOwner(BigDecimal donation, Prize prize) {
+    private void sendDonationToTheOwner(UserDto userDto, BigDecimal donation, Prize prize) {
         PayoutsTest payoutsTest = payoutsRepoTest.save(PayoutsTest.builder()
                 .tagOut(Prize.DONATION.getValue() + prize.getValue())
                 .account(StringEnum.DONATION_ADDRESS.getValue())
                 .destinationTag(Prize.DONATION.getValue())
                 .uuid(UUID.randomUUID().toString())
                 .data(Prize.DONATION.getValue())
+                .userUuid(userDto.getUserUuid())
+                .userId(userDto.getUserId())
                 .availableFunds(donation)
                 .payouts(donation)
                 .bet(donation)
                 .build());
 
         template.convertAndSend(StringEnum.MAKE_PAYMENT_ROUTING_KEY_TEST.getValue(), CommandAnswerDto.builder()
+                .baseUserId((long) ConstantsEnum.DONATION.getValue())
                 .baseUserUuid(Prize.DONATION.getValue())
-                .baseUserId(payoutsTest.getId())
                 .uuid(payoutsTest.getUuid())
                 .id(payoutsTest.getId())
                 .build());
@@ -177,7 +179,9 @@ public class BetLogicTest implements Bets {
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
                 .tagOut(stringBuilder.toString())
+                .userUuid(userDto.getUserUuid())
                 .account(userDto.getAccount())
+                .userId(userDto.getUserId())
                 .payouts(roundTheBet(pay))
                 .data(userDto.getData())
                 .bet(userDto.getBet())

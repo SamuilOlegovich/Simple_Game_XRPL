@@ -13,6 +13,7 @@ import com.samuilolegovich.model.sockets.interfaces.CommandListener;
 import com.samuilolegovich.model.subscribers.interfaces.StreamSubscriber;
 import com.samuilolegovich.model.wallets.WalletXRP;
 import com.samuilolegovich.model.wallets.WalletXRPTest;
+import com.samuilolegovich.services.interfaces.RemainingPayoutProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,7 @@ public class PaymentAndSocketManagerXRPL implements PaymentManager, SocketManage
     private SocketXRP socket;
     @Autowired
     private WalletXRP wallet;
+
     @Autowired
     @Qualifier("streamSubscriberToAccountBalanceChanges")
     private StreamSubscriber streamSubscriberToAccountBalanceChanges;
@@ -47,9 +49,18 @@ public class PaymentAndSocketManagerXRPL implements PaymentManager, SocketManage
     @Qualifier("streamSubscriberToAccountBalanceChangesTest")
     private StreamSubscriber streamSubscriberToAccountBalanceChangesTest;
 
+    @Autowired
+    @Qualifier("remaining-payout-processor-service")
+    private RemainingPayoutProcessor remainingPayoutProcessor;
+    @Autowired
+    @Qualifier("remaining-payout-processor-test")
+    private RemainingPayoutProcessor remainingPayoutProcessorTest;
+
 
     @PostConstruct
     public void init() {
+        remainingPayoutProcessorTest.handle();
+        remainingPayoutProcessor.handle();
         connectBlocking();
         subscribeToAccountBalanceChanges();
     }

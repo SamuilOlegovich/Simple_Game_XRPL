@@ -18,7 +18,11 @@ public class PayoutsTest {
     @Id // @ID - Важно чтобы была из библиотеке -> javax.persistence.Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+    @Column(name = "user_id")
+    private Long userId;
     private String uuid;
+    @Column(name = "user_uuid")
+    private String userUuid;
     private String account;
     @Column(name = "destination_tag")
     private String destinationTag;

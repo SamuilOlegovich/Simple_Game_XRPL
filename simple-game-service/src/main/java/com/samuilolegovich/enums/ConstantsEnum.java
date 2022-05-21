@@ -16,6 +16,7 @@ public enum ConstantsEnum {
     STOP(100),
     START(1),
     BIAS(2),
+    DONATION(99),
     MINIMUM_LOTTO_FOR_DRAWING_POSSIBILITIES(130000000),
     ;
 
