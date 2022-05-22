@@ -57,10 +57,10 @@ public class BetLogicTest implements Bets {
         if (bias > ConstantsEnum.ZERO_BIAS.getValue()) {
             // если лото позволяет дробление
             if (checkForWinningsLotto(lottoCredits)) {
-                if (generatedLotto == ConstantsEnum.LOTTO.getValue()) {
+                if (generatedLotto.equals(ConstantsEnum.LOTTO.getValue())) {
                     return point(userDto, lottoCredits);
                 }
-                if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue()) {
+                if (generatedLotto.equals(ConstantsEnum.SUPER_LOTTO.getValue())) {
                     return superLotto(userDto, lottoCredits);
                 }
             }
@@ -108,7 +108,7 @@ public class BetLogicTest implements Bets {
 
         // перенос средств в лото или арсенал
 
-        if (bias == ConstantsEnum.ONE_BIAS.getValue()) {
+        if (bias.equals(ConstantsEnum.ONE_BIAS.getValue())) {
             LottoTest lottoTest = lottoRepoTest.save(LottoTest.builder()
                     .totalLotto(lottoCredits.add(roundTheBet))
                     .build());
@@ -126,9 +126,9 @@ public class BetLogicTest implements Bets {
                                          ConditionTest condition) {
         // если лото позволяет дробление
         if (checkForWinningsLotto(lottoCredits)) {
-            if (generatedLotto == ConstantsEnum.LOTTO.getValue())
+            if (generatedLotto.equals(ConstantsEnum.LOTTO.getValue()))
                 return point(userDto, lottoCredits);
-            if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue())
+            if (generatedLotto.equals(ConstantsEnum.SUPER_LOTTO.getValue()))
                 return superLotto(userDto, lottoCredits);
         }
 
@@ -170,15 +170,11 @@ public class BetLogicTest implements Bets {
     }
 
     private CommandAnswerDto sendPayment(UserDto userDto, BigDecimal lottoCredits, BigDecimal pay, Prize prize) {
-        StringBuilder stringBuilder = new StringBuilder(lottoCredits.toString());
-        stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
-                .insert(0, prize.getValue());
-
         PayoutsTest payoutsTest = payoutsRepoTest.save(PayoutsTest.builder()
+                .tagOut(Converter.getOutTeg(lottoCredits, prize))
                 .destinationTag(userDto.getDestinationTag())
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
-                .tagOut(stringBuilder.toString())
                 .userUuid(userDto.getUserUuid())
                 .account(userDto.getAccount())
                 .userId(userDto.getUserId())

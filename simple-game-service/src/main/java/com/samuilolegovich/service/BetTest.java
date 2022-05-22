@@ -12,6 +12,7 @@ import com.samuilolegovich.repository.LottoRepoTest;
 import com.samuilolegovich.repository.PayoutsRepoTest;
 import com.samuilolegovich.repository.UserRepoTest;
 import com.samuilolegovich.service.interfaces.Bet;
+import com.samuilolegovich.util.Converter;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -82,15 +83,11 @@ public class BetTest implements Bet {
 
     private CommandAnswerDto getCommandAnswer(UserDto userDto, BigDecimal pay, BigDecimal lottoNow,
                                               InformationAboutRates enums) {
-        StringBuilder stringBuilder = new StringBuilder(lottoNow.toString());
-        stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
-                .insert(0, enums.getValue());
-
         PayoutsTest payoutsTest = payoutsRepoTest.save(PayoutsTest.builder()
+                .tagOut(Converter.getOutTeg(lottoNow, enums))
                 .destinationTag(userDto.getDestinationTag())
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
-                .tagOut(stringBuilder.toString())
                 .userUuid(userDto.getUserUuid())
                 .account(userDto.getAccount())
                 .userId(userDto.getUserId())

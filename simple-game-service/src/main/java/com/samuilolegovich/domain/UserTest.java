@@ -25,5 +25,6 @@ public class UserTest {
     @Column(name = "available_funds")
     private BigDecimal availableFunds;
     private BigDecimal bet;
+    @Column(name = "datas")
     private String data;
 }

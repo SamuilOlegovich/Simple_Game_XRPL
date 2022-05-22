@@ -32,5 +32,6 @@ public class Payouts {
     private BigDecimal availableFunds;
     private BigDecimal payouts;
     private BigDecimal bet;
+    @Column(name = "datas")
     private String data;
 }

@@ -55,10 +55,10 @@ public class BetLogic implements Bets {
         if (bias > ConstantsEnum.ZERO_BIAS.getValue()) {
             // если лото позволяет дробление
             if (checkForWinningsLotto(lottoCredits)) {
-                if (generatedLotto == ConstantsEnum.LOTTO.getValue()) {
+                if (generatedLotto.equals(ConstantsEnum.LOTTO.getValue())) {
                     return point(userDto, lottoCredits);
                 }
-                if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue()) {
+                if (generatedLotto.equals(ConstantsEnum.SUPER_LOTTO.getValue())) {
                     return superLotto(userDto, lottoCredits);
                 }
             }
@@ -105,7 +105,7 @@ public class BetLogic implements Bets {
         BigDecimal lottoNow = lottoCredits;
 
         // перенос средств в лото или арсенал
-        if (bias == ConstantsEnum.ONE_BIAS.getValue()) {
+        if (bias.equals(ConstantsEnum.ONE_BIAS.getValue())) {
             Lotto lotto = lottoRepo.save(Lotto.builder().totalLotto(lottoCredits.add(roundTheBet)).build());
             lottoNow = lotto.getTotalLotto();
         }
@@ -121,9 +121,9 @@ public class BetLogic implements Bets {
                                          Condition condition) {
         // если лото позволяет дробление
         if (checkForWinningsLotto(lottoCredits)) {
-            if (generatedLotto == ConstantsEnum.LOTTO.getValue())
+            if (generatedLotto.equals(ConstantsEnum.LOTTO.getValue()))
                 return point(userDto, lottoCredits);
-            if (generatedLotto == ConstantsEnum.SUPER_LOTTO.getValue())
+            if (generatedLotto.equals(ConstantsEnum.SUPER_LOTTO.getValue()))
                 return superLotto(userDto, lottoCredits);
         }
 
@@ -165,15 +165,11 @@ public class BetLogic implements Bets {
     }
 
     private CommandAnswerDto sendPayment(UserDto userDto, BigDecimal lottoCredits, BigDecimal pay, Prize prize) {
-        StringBuilder stringBuilder = new StringBuilder(lottoCredits.toString());
-        stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
-                .insert(0, prize.getValue());
-
         Payouts payouts = payoutsRepo.save(Payouts.builder()
+                .tagOut(Converter.getOutTeg(lottoCredits, prize))
                 .destinationTag(userDto.getDestinationTag())
                 .availableFunds(userDto.getAvailableFunds())
                 .uuid(UUID.randomUUID().toString())
-                .tagOut(stringBuilder.toString())
                 .userUuid(userDto.getUserUuid())
                 .account(userDto.getAccount())
                 .userId(userDto.getUserId())

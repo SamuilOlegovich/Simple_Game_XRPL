@@ -5,7 +5,10 @@ import com.samuilolegovich.enums.interfaces.Enums;
 import com.samuilolegovich.enums.Prize;
 import com.samuilolegovich.enums.RedBlack;
 
+import java.math.BigDecimal;
+
 public class Converter {
+    private static StringBuilder stringBuilder = new StringBuilder();
 
     // конвертирует число в енум
     public static Enums convert(Integer b) {
@@ -30,5 +33,12 @@ public class Converter {
             return RedBlack.GET_LOTTO_VOLUME;
         }
         return RedBlack.OTHER;
+    }
+
+    public static String getOutTeg(BigDecimal lottoCredits, Enums prize) {
+        stringBuilder.replace(0, stringBuilder.length(), lottoCredits.toString());
+        stringBuilder.replace(stringBuilder.length() - 6, stringBuilder.length(), "")
+                .insert(0, prize.getValue());
+        return stringBuilder.toString();
     }
 }
